@@ -1,4 +1,4 @@
-const lcjs = require('@arction/lcjs')
+const lcjs = require('@lightningchart/lcjs')
 const { lightningChart, AxisTickStrategies, emptyFill, AutoCursorModes, IndividualPointFill, Themes } = lcjs
 
 const lc = lightningChart({
@@ -53,7 +53,7 @@ chart.onSeriesBackgroundMouseDragStart((_, event) => {
     const locAxis = chart.translateCoordinate(event, chart.coordsAxis)
     band.setVisible(true)
     band.setValueStart(locAxis.x).setValueEnd(locAxis.x)
-    chart.setAutoCursorMode(AutoCursorModes.disabled)
+    chart.setCursorMode(undefined)
 })
 chart.onSeriesBackgroundMouseDrag((_, event) => {
     const locAxis = chart.translateCoordinate(event, chart.coordsAxis)
@@ -61,7 +61,7 @@ chart.onSeriesBackgroundMouseDrag((_, event) => {
 })
 chart.onSeriesBackgroundMouseDragStop((_, event) => {
     band.setVisible(false)
-    chart.setAutoCursorMode(AutoCursorModes.snapToClosest)
+    chart.setCursorMode('show-nearest')
     // Highlight all data points inside band
     const xMin = Math.min(band.getValueStart(), band.getValueEnd())
     const xMax = Math.max(band.getValueStart(), band.getValueEnd())
