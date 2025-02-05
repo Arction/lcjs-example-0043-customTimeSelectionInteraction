@@ -12,13 +12,8 @@ const chart = lc
     .setTitle('Custom data selection interaction (drag with left mouse above chart)')
 const axisX = chart.getDefaultAxisX().setTickStrategy(AxisTickStrategies.DateTime).setAnimationScroll(false)
 
-// Disable built-in interactions
-chart
-    .setMouseInteractionPan(false)
-    .setMouseInteractionRectangleFit(false)
-    .setMouseInteractionRectangleZoom(false)
-    .setMouseInteractionWheelZoom(false)
-chart.forEachAxis((axis) => axis.setMouseInteractions(false))
+// Disable conflicting built-in interactions
+chart.setUserInteractions({ rectangleZoom: false })
 
 // Generate random data for example
 const data = []
@@ -38,7 +33,7 @@ const lineSeries = chart
         ids: true,
     })
     .appendJSON(data, { x: 'x', y: 'y', id: 'id' })
-    .setMouseInteractions(false)
+    .setPointerEvents(false)
 const colorNormal = lineSeries.getStrokeStyle().getFillStyle().getColor()
 const colorUnselected = chart.getTheme().examples.unfocusedDataColor
 const colorSelected = chart.getTheme().examples.positiveFillStyle.getColor()
@@ -49,28 +44,32 @@ lineSeries
 
 // Setup custom user interaction
 const band = axisX.addBand(false).setVisible(false)
-chart.onSeriesBackgroundMouseDragStart((_, event) => {
+chart.seriesBackground.addEventListener('pointerdown', (event) => {
     const locAxis = chart.translateCoordinate(event, chart.coordsAxis)
     band.setVisible(true)
     band.setValueStart(locAxis.x).setValueEnd(locAxis.x)
     chart.setCursorMode(undefined)
-})
-chart.onSeriesBackgroundMouseDrag((_, event) => {
-    const locAxis = chart.translateCoordinate(event, chart.coordsAxis)
-    band.setValueEnd(locAxis.x)
-})
-chart.onSeriesBackgroundMouseDragStop((_, event) => {
-    band.setVisible(false)
-    chart.setCursorMode('show-nearest')
-    // Highlight all data points inside band
-    const xMin = Math.min(band.getValueStart(), band.getValueEnd())
-    const xMax = Math.max(band.getValueStart(), band.getValueEnd())
-    // NOTE: In this example, could just as well use `data` variable directly. But showing use of `readback` for example purposes.
-    const dataSet = lineSeries.readBack()
-    const idsInsideBand = []
-    for (let i = 0; i < dataSet.xValues.length; i += 1) {
-        const x = dataSet.xValues[i]
-        if (x >= xMin && x <= xMax) idsInsideBand.push(dataSet.ids[i])
+    const handleMove = (event) => {
+        const locAxis = chart.translateCoordinate(event, chart.coordsAxis)
+        band.setValueEnd(locAxis.x)
     }
-    lineSeries.fill({ color: colorUnselected }).alterSamplesByID(idsInsideBand, { color: colorSelected })
+    const handleUp = (event) => {
+        band.setVisible(false)
+        chart.setCursorMode('show-nearest')
+        // Highlight all data points inside band
+        const xMin = Math.min(band.getValueStart(), band.getValueEnd())
+        const xMax = Math.max(band.getValueStart(), band.getValueEnd())
+        // NOTE: In this example, could just as well use `data` variable directly. But showing use of `readback` for example purposes.
+        const dataSet = lineSeries.readBack()
+        const idsInsideBand = []
+        for (let i = 0; i < dataSet.xValues.length; i += 1) {
+            const x = dataSet.xValues[i]
+            if (x >= xMin && x <= xMax) idsInsideBand.push(dataSet.ids[i])
+        }
+        lineSeries.fill({ color: colorUnselected }).alterSamplesByID(idsInsideBand, { color: colorSelected })
+        document.body.removeEventListener('pointermove', handleMove)
+        document.body.removeEventListener('pointerup', handleUp)
+    }
+    document.body.addEventListener('pointermove', handleMove)
+    document.body.addEventListener('pointerup', handleUp)
 })
